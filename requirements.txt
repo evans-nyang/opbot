@@ -1,0 +1,10 @@
+Scrapy
+requests
+botocore
+pandas
+pgcli
+pgspecial
+psycopg2
+psycopg2-binary
+pyarrow
+SQLAlchemy
