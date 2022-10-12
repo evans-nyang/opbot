@@ -47,7 +47,7 @@ class JumiaSpider(scrapy.Spider):
 
     def parse_result(self, art) -> dict:
         """
-            update crawling time, product id and name in dictionary
+            update crawling time and metadata into dictionary
             Args: 
               art(dict)
             Returns: 
@@ -75,11 +75,12 @@ class JumiaSpider(scrapy.Spider):
 
     def __safe_parsing(self, parsing) -> str:
         """
-            assert if parsing object is of type str, extract str from selector item if not
+            assert if parsing arg is of type str, extract str from selector item if not
             Args:
               parsing(str): article from the crawler
             Returns:
               str: data from tag as a string
+              none: no values retrieved from arg
             Raises:
               valueError: if instance is not str or Selector
         """
