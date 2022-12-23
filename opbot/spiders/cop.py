@@ -50,13 +50,8 @@ class CopiaSpider(scrapy.Spider):
             driver.get(url)
             time.sleep(10) # delay to allow webpage to load
             self.scroll(driver)
-            # data = driver.page_source
-            # self.extractor(data)
             yield scrapy.Request(url=url, callback=self.extractor)
             # driver.quit()
-
-            # resp = HtmlResponse(url=url, body=data, encoding='utf-8')
-            # return resp
 
     def scroll(self, driver):
         """
@@ -64,7 +59,6 @@ class CopiaSpider(scrapy.Spider):
             Args:
             driver(selenium.webdriver): engine to execute scripts
         """
-        # driver = self.driver
         scroll_pause_time = 1
         # get height of the screen 
         screen_height = driver.execute_script("return window.screen.height;")
@@ -91,13 +85,9 @@ class CopiaSpider(scrapy.Spider):
             dict: nested dictionaries comprising data points with their indices as key-value pairs
         """
         try:
-            # pageSource = driver.find_element_by_xpath("//*").get_attribute("outerHTML")
-            # soup = BeautifulSoup(pageSource, 'lxml')
-            # Parse processed webpage with BeautifulSoup
-            # soup = BeautifulSoup(self.driver.page_source, 'lxml
-            # data = response
-            # resp = HtmlResponse(url=self.start_urls[0], body=data, encoding='utf-8')
-            soup = BeautifulSoup(response, 'lxml')
+            
+            html_text = response.text #extract html from HtmlResponse object
+            soup = BeautifulSoup(html_text, 'lxml') #parse html_text with BeautifulSoup
             
             newitems = {}
             mainPage = soup.find(id="main")
@@ -107,9 +97,8 @@ class CopiaSpider(scrapy.Spider):
             for i, obj in enumerate(products):
                 if i < 250:
                     newitems.update({i: self.parse_result(obj)})
-            # yield newitems
-            # print(newitems)
-            return newitems
+            yield newitems
+
         except AttributeError:
             print("Unknown or unexpected variable")
             raise 
