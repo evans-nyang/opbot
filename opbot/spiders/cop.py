@@ -20,10 +20,10 @@ class CopiaSpider(scrapy.Spider):
     )
     custom_settings = {
         # "LOG_FILE": "logs/copia.log",
-        "LOG_LEVEL": "INFO",
+        # "LOG_LEVEL": "INFO",
         "FEED_FORMAT": "json",
         # "FEED_URI": f"./datasets/base/{name}/{scrapping_date}-%(batch_id)01d.json",
-        "FEED_EXPORT_BATCH_ITEM_COUNT": 100
+        # "FEED_EXPORT_BATCH_ITEM_COUNT": 100
     }
     start_urls = [
         "https://copia.co.ke/product-category/all/saleable/foodstuff/cooking-oils/"

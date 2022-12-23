@@ -7,10 +7,10 @@ class JumiaSpider(scrapy.Spider):
     name = "jumia"
     custom_settings = {
         # "LOG_FILE": "logs/jumia.log",
-        "LOG_LEVEL": "INFO",
+        # "LOG_LEVEL": "INFO",
         "FEED_FORMAT": "json",
         # "FEED_URI": f"../datasets/base/{name}/{scrapping_date}-%(batch_id)01d.json",
-        "FEED_EXPORT_BATCH_ITEM_COUNT": 100
+        # "FEED_EXPORT_BATCH_ITEM_COUNT": 100
     }
     start_urls = ["https://www.jumia.co.ke/cooking-oil/"]
 
