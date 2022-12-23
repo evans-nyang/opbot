@@ -20,36 +20,53 @@ option.add_experimental_option("excludeSwitches", ["enable-automation"])
 option.add_experimental_option('useAutomationExtension', False)
 
 def parse(driver) -> dict:
-    # Parse processed webpage with BeautifulSoup
-    soup = BeautifulSoup(driver.page_source, 'lxml')
+    """
+        update result from parsed items into dictionary
+        Args:
+          driver(selenium.webdriver): engine to retrieve page source 
+        Returns:
+          dict: nested dictionaries comprising data points with their indices as key-value pairs
+    """
+    try:
+        # Parse processed webpage with BeautifulSoup
+        soup = BeautifulSoup(driver.page_source, 'lxml')
 
-    newitems = {}
-    mainPage = soup.find(id="main")
-    containerPage = mainPage.find("div", {"class":"shop-container"})
-    products = containerPage.findAll("div", {"class":"product-small box"})
-    print(f"This is the number of items : {len(products)}")
-    for i, obj in enumerate(products):
-        if i < 250:
-            # newitems.update({i: obj})
-            # newitems[i] = obj
-            newitems.update({i: parse_result(obj)})
+        newitems = {}
+        mainPage = soup.find(id="main")
+        containerPage = mainPage.find("div", {"class":"shop-container"})
+        products = containerPage.findAll("div", {"class":"product-small box"})
+        print(f"This is the number of items : {len(products)}")
+        for i, obj in enumerate(products):
+            if i < 250:
+                newitems.update({i: parse_result(obj)})
 
-    # yield newitems
-    print(newitems)
+        # yield newitems
+        print(newitems)
+    except Exception as err:
+        print("Exception occurred!!")
+        raise err
 
 def parse_result(obj) -> dict:
+    """
+        parse soup objects and extract data points
+        Args:
+          obj(tag): bs4 element to be parsed
+        Returns:
+          dict: data points as key-value pairs
+    """
     items = {}
     textContainer = obj.find("div", {"class":"box-text box-text-products"})
-    nametag = obj.find("p", {"class":re.compile("^name.+")})
-    # items["link1"] = it.find("a").attrs["href"]
-    items["category"] = __safe_parsing(textContainer.find("p").text)
+    nameTag = obj.find("p", {"class":re.compile("^name.+")})
+    textBox = textContainer.find("div", {"class":re.compile("^add-to-cart.+")}).find("a")
+    # items["link1"] = __safe_parsing(obj.find("a").attrs["href"])
+    items["category"] = __safe_parsing(textContainer.find("p").get_text())
     items["img_url"] = __safe_parsing(obj.find("img").attrs["data-src"])
-    items["name"] = __safe_parsing(nametag.text)
-    items["link"] = __safe_parsing(nametag.find("a").attrs["href"])
+    items["name"] = __safe_parsing(nameTag.text)
+    items["link"] = __safe_parsing(nameTag.find("a").attrs["href"])
     items["price"] = __safe_parsing(textContainer.find("bdi").text)
-    items["dataID"] = __safe_parsing(textContainer.find("div", {"class":re.compile("^add-to-cart.+")}).find("a").attrs["data-product_id"])
-    items["sku"] = __safe_parsing(textContainer.find("div", {"class":re.compile("^add-to-cart.+")}).find("a").attrs["data-product_sku"])
-    items["quantity"] = __safe_parsing(textContainer.find("div", {"class":re.compile("^add-to-cart.+")}).find("a").attrs["data-quantity"])
+    items["dataID"] = __safe_parsing(textBox.attrs["data-product_id"])
+    items["sku"] = __safe_parsing(textBox.attrs["data-product_sku"])
+    items["quantity"] = __safe_parsing(textBox.attrs["data-quantity"])
 
     return items
 
@@ -75,26 +92,33 @@ def __safe_parsing(parsing) -> str:
         return None
 
 def scroll(driver):
+    """
+        handle infinite scroll of the pages one page at a time
+        Args:
+          driver(selenium.webdriver): engine to execute scripts
+    """
     scroll_pause_time = 1
     # get height of the screen 
     screen_height = driver.execute_script("return window.screen.height;")
-    i = 1
+    pg = 1
 
     # scroll infinitely to obtain items
     while True:
         # scroll one screen height at a time 
-        driver.execute_script("window.scrollTo(0, {screen_height}*{i});".format(screen_height=screen_height, i=i))
-        i += 1
+        driver.execute_script("window.scrollTo(0, {screen_height}*{pg});".format(screen_height=screen_height, pg=pg))
+        pg += 1
         time.sleep(scroll_pause_time)
         # update scroll height each time after scrolled, as the scroll height can change after we scrolled the page
         scroll_height = driver.execute_script("return document.body.scrollHeight;")
         # Break the loop when the height we need to scroll to is larger than the total scroll height
-        if (screen_height) * i > scroll_height:
+        if (screen_height) * pg > scroll_height:
             break
 
 def connection():
+    """
+        instantiate the webdriver and load url
+    """
     try:
-        # Load the HTML page
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=option)
     except Exception as err:
         print("Encountered an exception!!")
@@ -106,7 +130,6 @@ def connection():
 
         parse(driver)
     finally:
-        # exit 
         driver.quit()
 
 
