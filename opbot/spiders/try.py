@@ -2,6 +2,7 @@ import datetime
 import re
 import time
 
+import bs4
 import scrapy
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -17,6 +18,61 @@ option.add_argument("--no-sandbox") #bypass OS security model
 option.add_argument("--disable-dev-shm-usage") #overcome limited resource problems
 option.add_experimental_option("excludeSwitches", ["enable-automation"])
 option.add_experimental_option('useAutomationExtension', False)
+
+def parse(driver) -> dict:
+    # Parse processed webpage with BeautifulSoup
+    soup = BeautifulSoup(driver.page_source, 'lxml')
+
+    newitems = {}
+    mainPage = soup.find(id="main")
+    containerPage = mainPage.find("div", {"class":"shop-container"})
+    products = containerPage.findAll("div", {"class":"product-small box"})
+    print(f"This is the number of items : {len(products)}")
+    for i, obj in enumerate(products):
+        if i < 250:
+            # newitems.update({i: obj})
+            # newitems[i] = obj
+            newitems.update({i: parse_result(obj)})
+
+    # yield newitems
+    print(newitems)
+
+def parse_result(obj) -> dict:
+    items = {}
+    textContainer = obj.find("div", {"class":"box-text box-text-products"})
+    nametag = obj.find("p", {"class":re.compile("^name.+")})
+    # items["link1"] = it.find("a").attrs["href"]
+    items["category"] = __safe_parsing(textContainer.find("p").text)
+    items["img_url"] = __safe_parsing(obj.find("img").attrs["data-src"])
+    items["name"] = __safe_parsing(nametag.text)
+    items["link"] = __safe_parsing(nametag.find("a").attrs["href"])
+    items["price"] = __safe_parsing(textContainer.find("bdi").text)
+    items["dataID"] = __safe_parsing(textContainer.find("div", {"class":re.compile("^add-to-cart.+")}).find("a").attrs["data-product_id"])
+    items["sku"] = __safe_parsing(textContainer.find("div", {"class":re.compile("^add-to-cart.+")}).find("a").attrs["data-product_sku"])
+    items["quantity"] = __safe_parsing(textContainer.find("div", {"class":re.compile("^add-to-cart.+")}).find("a").attrs["data-quantity"])
+
+    return items
+
+def __safe_parsing(parsing) -> str:
+    """
+        assert if parsing arg is of type str, extract str from selector item if not
+        Args:
+          parsing(str): article from the crawler
+        Returns:
+          str: data from tag as a string
+          none: no values retrieved from arg
+        Raises:
+          valueError: if instance is not str or Selector
+    """
+    try:
+        if isinstance(parsing, str):
+            return parsing
+        elif isinstance(parsing, bs4.element.NavigableString):
+            return parsing.strip()
+        elif isinstance(parsing, scrapy.Selector):
+            return parsing.get()
+    except Exception:
+        return None
 
 def scroll(driver):
     scroll_pause_time = 1
@@ -48,32 +104,7 @@ def connection():
         time.sleep(10) # delay to allow webpage to load
         scroll(driver)
 
-        # Parse processed webpage with BeautifulSoup
-        soup = BeautifulSoup(driver.page_source, 'lxml')
-
-        mainPage = soup.find(id="main")
-        containerPage = mainPage.find("div", {"class":"shop-container"})
-        products = containerPage.findAll("div", {"class":"product-small box"})
-        textContainer = containerPage.findAll("div", {"class":"box-text box-text-products"})
-        nametag = containerPage.findAll("p", {"class":re.compile("^name.+")})
-        # category = [art.find("p").text for art in textContainer]
-        # link1 = [art.find("a").attrs["href"] for art in products]
-        # img_url = [art.find("img").attrs["data-src"] for art in products]
-        
-        name = [art.text for art in nametag]
-        link = [art.find("a").attrs["href"] for art in nametag]
-        price = [art.find("bdi").text for art in textContainer]
-        dataID = [art.find("div", {"class":re.compile("^add-to-cart.+")}).find("a").attrs["data-product_id"] for art in textContainer]
-        sku = [art.find("div", {"class":re.compile("^add-to-cart.+")}).find("a").attrs["data-product_sku"] for art in textContainer]
-        quantity = [art.find("div", {"class":re.compile("^add-to-cart.+")}).find("a").attrs["data-quantity"] for art in textContainer]
-        # print(f"This product: {name}-({link}) for {price}")
-        # print(len(nametag))
-        # print(nametag)
-        
-        
-        # print(f"Found {len(link)} items \n{link} || {img_url}")
-        # print(f"Found {len(img_url)} items \n{img_url}")
-        print(f"Found {len(name)} items.")
+        parse(driver)
     finally:
         # exit 
         driver.quit()
