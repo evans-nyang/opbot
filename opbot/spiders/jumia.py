@@ -1,15 +1,19 @@
 import datetime
 
 import scrapy
+from scrapy.utils.project import get_project_settings
 
 
 class JumiaSpider(scrapy.Spider):
     name = "jumia"
+    scrapping_date = datetime.datetime.strftime(
+        datetime.datetime.now().date(), "%Y%m%d"
+    )
     custom_settings = {
         # "LOG_FILE": "logs/jumia.log",
         # "LOG_LEVEL": "INFO",
         "FEED_FORMAT": "json",
-        # "FEED_URI": f"../datasets/base/{name}/{scrapping_date}-%(batch_id)01d.json",
+        "FEED_URI": f"datasets/base/{name}/{scrapping_date}-%(batch_id)01d.json",
         # "FEED_EXPORT_BATCH_ITEM_COUNT": 100
     }
     start_urls = ["https://www.jumia.co.ke/cooking-oil/"]
@@ -26,6 +30,7 @@ class JumiaSpider(scrapy.Spider):
           for more info
         """
         try:
+            settings = get_project_settings()
             print("\nCrawling through jumia")
             articles = response.xpath(
                 "/html/body/div[1]/main/div[2]/div[3]/section/div[1]/article[@class='prd _fb col c-prd']"
@@ -66,12 +71,12 @@ class JumiaSpider(scrapy.Spider):
             datetime.datetime.now(), "%Y-%m-%d %H:%M:%S"
         )
         data["name"] = self.__safe_parsing(core.xpath("@data-name").get())
+        data["dataID"] = self.__safe_parsing(core.xpath("@data-id").get())
         data["href"] = self.__safe_parsing(core.xpath("@href").get())
-        data["data-id"] = self.__safe_parsing(core.xpath("@data-id").get())
         data["brand"] = self.__safe_parsing(core.xpath("@data-brand").get())
-        data["name2"] = self.__safe_parsing(
-            core.xpath(".//div[@class='info']/h3/text()").get()
-        )
+        # data["name2"] = self.__safe_parsing(
+        #     core.xpath(".//div[@class='info']/h3/text()").get()
+        # )
         data["price"] = self.__safe_parsing(
             core.xpath(".//div[@class='info']/div[@class='prc']/text()").get()
         )

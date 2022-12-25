@@ -22,7 +22,7 @@ class CopiaSpider(scrapy.Spider):
         # "LOG_FILE": "logs/copia.log",
         # "LOG_LEVEL": "INFO",
         "FEED_FORMAT": "json",
-        # "FEED_URI": f"./datasets/base/{name}/{scrapping_date}-%(batch_id)01d.json",
+        "FEED_URI": f"datasets/base/{name}/{scrapping_date}-%(batch_id)01d.json"
         # "FEED_EXPORT_BATCH_ITEM_COUNT": 100
     }
     start_urls = [
@@ -41,6 +41,7 @@ class CopiaSpider(scrapy.Spider):
             instantiate the webdriver and load url
         """
         try:
+            settings = get_project_settings()
             url = 'https://copia.co.ke/product-category/all/saleable/foodstuff/cooking-oils/'
             driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=self.option)
         except Exception as err:
@@ -51,6 +52,7 @@ class CopiaSpider(scrapy.Spider):
             time.sleep(10) # delay to allow webpage to load
             self.scroll(driver)
             yield scrapy.Request(url=url, callback=self.extractor)
+            
             # driver.quit()
 
     def scroll(self, driver):
@@ -59,7 +61,7 @@ class CopiaSpider(scrapy.Spider):
             Args:
             driver(selenium.webdriver): engine to execute scripts
         """
-        scroll_pause_time = 1
+        scroll_pause_time = 5
         # get height of the screen 
         screen_height = driver.execute_script("return window.screen.height;")
         pg = 1
@@ -80,7 +82,7 @@ class CopiaSpider(scrapy.Spider):
         """
             update result from parsed items into dictionary
             Args:
-            response 
+            response(HtmlResponse)
             Returns:
             dict: nested dictionaries comprising data points with their indices as key-value pairs
         """
@@ -92,12 +94,13 @@ class CopiaSpider(scrapy.Spider):
             newitems = {}
             mainPage = soup.find(id="main")
             containerPage = mainPage.find("div", {"class":"shop-container"})
-            products = containerPage.findAll("div", {"class":"product-small box"})
+            products = containerPage.findAll("div", {"class":re.compile("^product-small col.+")})
             print(f"This is the number of items : {len(products)}")
             for i, obj in enumerate(products):
                 if i < 250:
                     newitems.update({i: self.parse_result(obj)})
-            yield newitems
+            # yield newitems
+            return newitems
 
         except AttributeError:
             print("Unknown or unexpected variable")
@@ -118,15 +121,24 @@ class CopiaSpider(scrapy.Spider):
         textContainer = obj.find("div", {"class":"box-text box-text-products"})
         nameTag = obj.find("p", {"class":re.compile("^name.+")})
         textBox = textContainer.find("div", {"class":re.compile("^add-to-cart.+")}).find("a")
+        
         # items["link1"] = self.__safe_parsing(obj.find("a").attrs["href"])
-        items["category"] = self.__safe_parsing(textContainer.find("p").get_text())
-        items["img_url"] = self.__safe_parsing(obj.find("img").attrs["data-src"])
+        items["crawled_at"] = datetime.datetime.strftime(
+            datetime.datetime.now(), "%Y-%m-%d %H:%M:%S"
+        )
         items["name"] = self.__safe_parsing(nameTag.text)
-        items["link"] = self.__safe_parsing(nameTag.find("a").attrs["href"])
-        items["price"] = self.__safe_parsing(textContainer.find("bdi").text)
         items["dataID"] = self.__safe_parsing(textBox.attrs["data-product_id"])
         items["sku"] = self.__safe_parsing(textBox.attrs["data-product_sku"])
-        items["quantity"] = self.__safe_parsing(textBox.attrs["data-quantity"])
+        items["href"] = self.__safe_parsing(nameTag.find("a").attrs["href"])
+        items["category"] = self.__safe_parsing(textContainer.find("p").get_text())
+        items["price"] = self.__safe_parsing(textContainer.find("bdi").text)
+        # items["old_price"] = self.__safe_parsing()
+        # items["discount"] = self.__safe_parsing()
+        items["votes"] = None
+        items["stars"] = None
+        items["img_url"] = self.__safe_parsing(obj.find("img").attrs["data-src"])
+        items["official_store"] = None
+        # items["quantity"] = self.__safe_parsing(textBox.attrs["data-quantity"])
 
         return items
 
